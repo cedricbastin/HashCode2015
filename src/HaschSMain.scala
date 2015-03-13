@@ -23,7 +23,7 @@ object HaschSMain extends App {
       .map(_.split(" ").map(_.toInt)).map { list => (list(0).asInstanceOf[Row], list(1).asInstanceOf[Slot]) }.sortBy(_._1) //create Int tuples
   println("unavailable: " + unAv.take(10))
   val serv = lines.drop(1).drop(U).take(M) //M
-    .map(_.split(" ").map(_.toInt)).zipWithIndex.map { case (list, i) => Server(i, -1, -1, list(0), list(1)) }
+    .map(_.split(" ").map(_.toInt)).zipWithIndex.map { case (list, i) => Server(i, -1, -1, -1, list(0), list(1)) }
   println()
   println("servers" + serv.take(10))
   val linesWithUnAv = unAv.groupBy(_._1).toList.sortBy(_._1).map(t => Line(t._1, t._2.map(_._2).sortBy(x => x))) //List[List[(Int, Int)]]
@@ -53,7 +53,7 @@ object HaschSMain extends App {
   linesRanges.take(10).foreach(println(_))
   println("lines:" + linesRanges.size)
 
-  case class Server(n: Int, row:Int, col: Int, size: Int, weight: Int)
+  case class Server(id: Int, row:Int, col: Int, pool:Int, size: Int, weight: Int)
 
   def assignRec(tr:Int, lr: List[Range], ls: List[Server]): List[Server] = (lr, ls) match {
     case (Nil, x) =>
@@ -62,9 +62,9 @@ object HaschSMain extends App {
       println("no more server, range:"+x); Nil
     case (lrh :: lrt, lss) =>
       val rsize = lrh.max - lrh.min + 1
-      lss.find { server => {server.size < rsize} } match {
+      lss.find { server => {if (rsize > 2) server.size < rsize/2 else server.size < rsize} } match {
         case None => assignRec(tr, lrt, lss)
-        case Some(se) => Server(se.n, tr, lrh.min, se.size, se.weight) ::
+        case Some(se) => Server(se.id, tr, lrh.min, -1, se.size, se.weight) ::
           {
             val index = lss.indexOf(se)
             val nlss = lss.take(index) ::: lss.drop(index + 1)
@@ -84,17 +84,19 @@ object HaschSMain extends App {
   val servLinAss = serv.grouped(size).toList.map(_.sortWith((s1, s2) => s1.weight/s1.size > s2.weight/s2.size))
   //servLinAss.foreach { println(_) }
   
-  val res = linesRanges.zip(servLinAss).map{case (line, servList) => assignRec(line.n, line.x, servList)}
+  val res = linesRanges.zip(servLinAss).map{case (line, servList) => assignRec(line.n, line.x, servList)}.map(_.map(server => server.copy(pool = (server.col + server.row) % P)))
   res.foreach { println(_) }
 
   def printt(index:Int, ss: List[Server]):Unit = ss match {
     case x :: xs =>
-      if (x.n == index) {println(x.row+" "+x.col+" "+(x.row + x.col) % P); printt(index+1, xs)}
+      if (x.id == index) {println(x.row+" "+x.col+" "+x.pool); printt(index+1, xs)}
       else {println("x"); printt(index+1, x :: xs)}
     case Nil if (index < M) => println("x"); printt(index+1, Nil)
     case Nil => println("")
   }
-  printt(0, res.flatten.sortBy(s => s.n))
+  printt(0, res.flatten.sortBy(s => s.id))
+  
+  //res.flatten.groupBy(_.)
   
   //for(i <- 1 to n) yield s).toList
 }
