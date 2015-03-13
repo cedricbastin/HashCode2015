@@ -78,7 +78,7 @@ object HaschSMain extends App {
   println(size)
   println(linesRanges.size)
   println(R)
-  val servLinAss = serv.grouped(size).toList.map(_.sortWith((s1, s2) => (s1.weight/s1.size) > (s2.weight/s2.size)))
+  val servLinAss = serv.grouped(size).toList.map(_.sortWith((s1, s2) => s1.weight > s2.weight))
   //servLinAss.foreach { println(_) }
   
   val res = linesRanges.zip(servLinAss).map{case (line, servList) => assignRec(line.n, line.x, servList)}.map(_.map(server => server.copy(pool = (server.col + server.row) % P)))
