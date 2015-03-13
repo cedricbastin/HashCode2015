@@ -5,10 +5,9 @@ object HaschSMain extends App {
   case class Line[A](n: Int, x: A)
   type Row = Int
   type Slot = Int
-  //type Range[A] = List[A]
   type Size = Int
   type Capacity = Int
-  println("Scala")
+
   val lines = Source.fromFile("dc.in").getLines().toList
   val pLine = lines.head
   val params = pLine.split(" ").map(_.toInt)
@@ -18,6 +17,7 @@ object HaschSMain extends App {
   val U = params(2) //# unavailable slots
   val P = params(3) //# pools to be created
   val M = params(4) //# servers to be allocated
+  
   val unAv =
     lines.drop(1).take(U).toList //take range U
       .map(_.split(" ").map(_.toInt)).map { list => (list(0).asInstanceOf[Row], list(1).asInstanceOf[Slot]) }.sortBy(_._1) //create Int tuples
@@ -28,10 +28,7 @@ object HaschSMain extends App {
   println("servers" + serv.take(10))
   val linesWithUnAv = unAv.groupBy(_._1).toList.sortBy(_._1).map(t => Line(t._1, t._2.map(_._2).sortBy(x => x))) //List[List[(Int, Int)]]
   println(linesWithUnAv.take(5).foreach { println(_) })
-  //.map(_.sort)
 
-  //trait R
-  //case object End extends R
   case class Range(min: Int, max: Int) //extends R
 
   def range(unAva: List[Int]): List[Range] = {
@@ -62,7 +59,7 @@ object HaschSMain extends App {
       println("no more server, range:"+x); Nil
     case (lrh :: lrt, lss) =>
       val rsize = lrh.max - lrh.min + 1
-      lss.find { server => {if (rsize > 2) server.size < rsize/2 else server.size < rsize} } match {
+      lss.find { server => {server.size < rsize} } match {
         case None => assignRec(tr, lrt, lss)
         case Some(se) => Server(se.id, tr, lrh.min, -1, se.size, se.weight) ::
           {
@@ -92,11 +89,20 @@ object HaschSMain extends App {
       if (x.id == index) {println(x.row+" "+x.col+" "+x.pool); printt(index+1, xs)}
       else {println("x"); printt(index+1, x :: xs)}
     case Nil if (index < M) => println("x"); printt(index+1, Nil)
-    case Nil => println("")
+    case Nil => println("") //the end
   }
   printt(0, res.flatten.sortBy(s => s.id))
   
-  //res.flatten.groupBy(_.)
+  def poolGuaranteedCapacity(servs:List[Server]):Int = {
+    servs.groupBy(_.row).map{
+      case (row, list) => servs.filterNot(_.row == row).map(_.weight).reduce{(x, y) => x + y}
+    }.toList.min
+  }
+  val guaranteedCapacityList = res.flatten.groupBy(_.pool).map{case (pool, servers) => poolGuaranteedCapacity(servers)}.toList
+  guaranteedCapacityList.foreach { println(_) }
+  val minGuaranteedCapacity = guaranteedCapacityList.min
+  
+  println("min guar cap: "+minGuaranteedCapacity)
   
   //for(i <- 1 to n) yield s).toList
 }
